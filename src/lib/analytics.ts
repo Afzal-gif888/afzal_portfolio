@@ -1,19 +1,72 @@
 "use client";
 
 import { doc, setDoc, increment } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 
-export async function trackEvent(eventName: string) {
+// Basic device categorization
+function getDeviceType() {
+  if (typeof navigator === "undefined") return "unknown";
+  const ua = navigator.userAgent;
+  if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) return "tablet";
+  if (/Mobile|iP(hone|od)|Android|BlackBerry|IEMobile|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) return "mobile";
+  return "desktop";
+}
+
+export async function trackEvent(eventName: string, eventParams?: Record<string, any>) {
+  if (typeof window === "undefined") return;
+
   try {
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    // 1. Admin & Dashboard Exclusions
+    const isAdminStorage = localStorage.getItem("isAdmin") === "true";
+    const isDashboardRoute = window.location.pathname.startsWith("/admin");
     
-    // Increment global counter
+    if (isAdminStorage || isDashboardRoute) {
+      console.log("Analytics: Tracking disabled for admin/dashboard");
+      return;
+    }
+
+    // Secondary fallback: check Firebase auth directly if initialized
+    if (auth.currentUser) {
+      return;
+    }
+
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
     const globalRef = doc(db, "analytics", "global");
-    await setDoc(globalRef, { [eventName]: increment(1) }, { merge: true });
+    const dailyRef = doc(db, "analytics", `daily_${today}`);
+    
+    // Base tracking object
+    const updateData: Record<string, any> = { [eventName]: increment(1) };
+    const dailyUpdateData: Record<string, any> = { [eventName]: increment(1), date: today };
+
+    // Unique Visitors & Sessions tracking
+    if (eventName === EVENTS.PAGE_VIEW) {
+      const deviceType = getDeviceType();
+      
+      // Track Unique Visitors (once per browser)
+      if (!localStorage.getItem("has_visited_unique")) {
+        localStorage.setItem("has_visited_unique", "true");
+        updateData.unique_visitors = increment(1);
+        dailyUpdateData.unique_visitors = increment(1);
+        
+        // Track device types for unique visitors
+        updateData[`device_${deviceType}`] = increment(1);
+        dailyUpdateData[`device_${deviceType}`] = increment(1);
+      }
+
+      // Track Total Visits/Sessions (once per browsing session)
+      if (!sessionStorage.getItem("has_visited_session")) {
+        sessionStorage.setItem("has_visited_session", "true");
+        updateData.total_visits = increment(1);
+        dailyUpdateData.total_visits = increment(1);
+      }
+    }
+
+    // Increment global counter
+    await setDoc(globalRef, updateData, { merge: true });
 
     // Increment daily counter
-    const dailyRef = doc(db, "analytics", `daily_${today}`);
-    await setDoc(dailyRef, { [eventName]: increment(1), date: today }, { merge: true });
+    await setDoc(dailyRef, dailyUpdateData, { merge: true });
+    
   } catch (error) {
     console.error("Analytics tracking error:", error);
   }
