@@ -20,6 +20,7 @@ interface ProfileData {
   email: string;
   phone: string;
   resumeUrl: string;
+  resumeName?: string;
 }
 
 export default function ProfileAdmin() {
@@ -32,6 +33,7 @@ export default function ProfileAdmin() {
     email: "",
     phone: "",
     resumeUrl: "",
+    resumeName: "",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -154,6 +156,17 @@ export default function ProfileAdmin() {
               <div>
                 <Input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} disabled={uploadingResume} className="max-w-[250px]" />
                 {uploadingResume && <p className="text-sm text-muted-foreground mt-2">Uploading to Cloudinary...</p>}
+              </div>
+
+              <div className="space-y-2 pt-4 border-t">
+                <Label htmlFor="resumeName">Custom Download Filename</Label>
+                <Input 
+                  id="resumeName" 
+                  value={data.resumeName || ""} 
+                  onChange={(e) => setData({ ...data, resumeName: e.target.value })} 
+                  placeholder="e.g. Afzal_Resume" 
+                />
+                <p className="text-xs text-muted-foreground">The filename users will see when downloading. Falls back to "Resume" if empty.</p>
               </div>
             </CardContent>
           </Card>

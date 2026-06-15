@@ -15,6 +15,7 @@ interface ProfileData {
   title: string;
   intro: string;
   resumeUrl?: string;
+  resumeName?: string;
 }
 
 interface SocialLink {
@@ -82,9 +83,11 @@ export default function Hero() {
       const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
-      // Extract original filename or default to Resume.pdf
-      const filename = profile.resumeUrl.split('/').pop() || "Resume.pdf";
-      a.download = filename.includes('.') ? filename : `${filename}.pdf`;
+      
+      const customName = profile.resumeName?.trim() || "Resume";
+      const filename = customName.toLowerCase().endsWith(".pdf") ? customName : `${customName}.pdf`;
+      a.download = filename;
+      
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(blobUrl);
