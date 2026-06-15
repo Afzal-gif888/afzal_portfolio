@@ -54,7 +54,7 @@ export default function OptimizedImage({
         className={`${className} transition-opacity duration-500 ${
           isLoaded ? "opacity-100" : "opacity-0"
         }`}
-        style={{ ...props.style, zIndex: 1, position: "relative" }}
+        style={{ ...props.style, zIndex: 1, ...(props.fill ? {} : { position: "relative" }) }}
         onLoad={() => setIsLoaded(true)}
       />
     </div>

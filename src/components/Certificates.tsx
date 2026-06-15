@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { collection, query, orderBy, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import Image from "next/image";
+import OptimizedImage from "@/components/OptimizedImage";
 import { ExternalLink, Award } from "lucide-react";
 
 interface Certificate {
@@ -83,7 +83,7 @@ export default function Certificates() {
             >
               {cert.imageUrl ? (
                 <div className="relative w-full h-44 bg-muted">
-                  <Image src={cert.imageUrl} alt={cert.name} fill className="object-contain p-3" />
+                  <OptimizedImage src={cert.imageUrl} alt={cert.name} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-contain p-3" />
                 </div>
               ) : (
                 <div className="w-full h-28 flex items-center justify-center bg-muted/50 border-b">

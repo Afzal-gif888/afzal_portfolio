@@ -189,7 +189,7 @@ export default function ProjectsAdmin() {
                 <Label>Project Image</Label>
                 {formData.imageUrl ? (
                   <div className="relative w-full h-40 rounded-lg overflow-hidden border">
-                    <Image src={formData.imageUrl} alt="Project Preview" fill className="object-cover" />
+                    <Image src={formData.imageUrl} alt="Project Preview" fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
                       <Button type="button" variant="destructive" size="icon" onClick={() => setFormData({...formData, imageUrl: ""})}>
                         <Trash2 className="h-4 w-4" />
@@ -291,7 +291,7 @@ export default function ProjectsAdmin() {
                     <div key={project.id} className="flex flex-col border rounded-lg overflow-hidden bg-card transition-shadow hover:shadow-md">
                       <div className="relative w-full h-32 bg-muted">
                         {project.imageUrl ? (
-                          <Image src={project.imageUrl} alt={project.name} fill className="object-cover" />
+                          <Image src={project.imageUrl} alt={project.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-muted-foreground">No Image</div>
                         )}

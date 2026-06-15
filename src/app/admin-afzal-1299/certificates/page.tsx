@@ -174,7 +174,7 @@ export default function CertificatesAdmin() {
                 <Label>Certificate Image</Label>
                 {formData.imageUrl ? (
                   <div className="relative w-full h-40 rounded-lg overflow-hidden border">
-                    <Image src={formData.imageUrl} alt="Certificate Preview" fill className="object-cover" />
+                    <Image src={formData.imageUrl} alt="Certificate Preview" fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
                       <Button type="button" variant="destructive" size="icon" onClick={() => setFormData({...formData, imageUrl: ""})}>
                         <Trash2 className="h-4 w-4" />
@@ -255,7 +255,7 @@ export default function CertificatesAdmin() {
                     <div key={cert.id} className="flex flex-col border rounded-lg overflow-hidden bg-card transition-shadow hover:shadow-md">
                       {cert.imageUrl ? (
                         <div className="relative w-full h-40 bg-muted">
-                          <Image src={cert.imageUrl} alt={cert.name} fill className="object-contain p-2" />
+                          <Image src={cert.imageUrl} alt={cert.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain p-2" />
                         </div>
                       ) : (
                         <div className="w-full h-24 flex items-center justify-center bg-muted/50 border-b">

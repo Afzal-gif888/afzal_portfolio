@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { collection, query, orderBy, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import Image from "next/image";
+import OptimizedImage from "@/components/OptimizedImage";
 import { ExternalLink, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -86,7 +86,7 @@ export default function Projects() {
             >
               <div className="relative w-full h-48 bg-muted overflow-hidden">
                 {project.imageUrl ? (
-                  <Image src={project.imageUrl} alt={project.name} fill className="object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
+                  <OptimizedImage src={project.imageUrl} alt={project.name} fill className="object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
                     No Preview
