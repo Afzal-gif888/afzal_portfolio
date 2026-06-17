@@ -6,17 +6,28 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { LayoutDashboard, User, Code, FileText, Award, Briefcase, LogOut, BarChart3, Link2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, isAdmin } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!loading && !user && pathname !== "/admin-afzal-1299/login") {
-      router.push("/admin-afzal-1299/login");
+    if (!loading) {
+      // Redirect to login if not authenticated
+      if (!user && pathname !== "/admin-afzal-1299/login") {
+        router.push("/admin-afzal-1299/login");
+        return;
+      }
+      
+      // Redirect to access denied if user is not admin (except on login page)
+      if (user && !isAdmin && pathname !== "/admin-afzal-1299/login") {
+        router.push("/admin-afzal-1299/access-denied");
+        return;
+      }
     }
-  }, [user, loading, router, pathname]);
+  }, [user, loading, isAdmin, router, pathname]);
 
   if (loading) {
     return (
@@ -31,8 +42,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return null;
   }
 
-  // If on the login page, just render the content without the sidebar
-  if (pathname === "/admin-afzal-1299/login") {
+  // If not admin and not on login page, don't render sidebar
+  if (!isAdmin && pathname !== "/admin-afzal-1299/login" && pathname !== "/admin-afzal-1299/access-denied") {
+    return null;
+  }
+
+  // If on the login or access denied page, just render the content without the sidebar
+  if (pathname === "/admin-afzal-1299/login" || pathname === "/admin-afzal-1299/access-denied") {
     return <>{children}</>;
   }
 
@@ -55,6 +71,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="w-64 bg-card border-r border-border flex-col h-screen sticky top-0 hidden md:flex">
         <div className="p-6 border-b border-border">
           <h2 className="text-xl font-bold text-primary">Admin Panel</h2>
+          <p className="text-xs text-muted-foreground mt-1">{user?.email}</p>
         </div>
         <nav className="flex-1 overflow-y-auto py-4">
           <ul className="space-y-1 px-4">

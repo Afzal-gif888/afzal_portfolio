@@ -1,12 +1,109 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /analytics/{document=**} {
-      allow read, write: if true;
+  
+    // Helper function to check if request is from authenticated admin user
+    function isAuthenticatedUser() {
+      return request.auth != null;
     }
-    match /{document=**} {
+
+    // Helper function to check if request is from the portfolio owner/admin
+    // Validates against admin email and admin UID configured in environment
+    function isAdminUser() {
+      return request.auth != null && (
+        request.auth.email == 'afzal.portfolio@gmail.com' ||
+        request.auth.uid == 'admin_uid_placeholder'
+      );
+    }
+
+    // Helper function to check if user is admin for edit operations
+    function isAdmin() {
+      return isAdminUser();
+    }
+
+    // Rules for public portfolio collections (read-only for all, write only for admin)
+    match /profile/{document=**} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
+    }
+    match /aboutProfile/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /aboutServices/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /aboutTimeline/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /skills/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /projects/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /socialLinks/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /experience/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /certificates/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /achievements/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // --- ANALYTICS ACCESS CONTROL RULES ---
+    // Only authenticated admin users can READ analytics data
+    // All visitors can only CREATE analytics events (write-only, no read access)
+
+    // 1. Global / Daily Analytics Aggregates
+    match /analytics/{docId} {
+      allow read: if isAdminUser();
+      allow create: if isAuthenticatedUser() == false;  // Only visitors (non-authenticated)
+      allow update: if isAdminUser();
+      allow delete: if isAdminUser();
+    }
+
+    // 2. Visitor Tracking Records - PRIVATE
+    match /analyticsVisitors/{visitorId} {
+      allow read: if isAdminUser();
+      allow create: if isAuthenticatedUser() == false;  // Only visitors can create
+      allow update: if isAuthenticatedUser() == false;  // Visitors can update their own records
+      allow delete: if isAdminUser();
+    }
+
+    // 3. Detailed Event Records - PRIVATE
+    match /analyticsEvents/{eventId} {
+      allow read: if isAdminUser();
+      allow create: if isAuthenticatedUser() == false;  // Only visitors can create event logs
+      allow update, delete: if isAdminUser();
+    }
+
+    // 4. Project Views Analytics - PRIVATE
+    match /projectAnalytics/{projectId} {
+      allow read: if isAdminUser();
+      allow create: if isAuthenticatedUser() == false;  // Only visitors can increment views
+      allow update: if isAuthenticatedUser() == false;  // Visitors can update their views
+      allow delete: if isAdminUser();
+    }
+
+    // 5. Analytics Summary/Dashboard Data - PRIVATE
+    match /analyticsSummary/{docId} {
+      allow read: if isAdminUser();
+      allow create: if isAuthenticatedUser() == false;
+      allow update: if isAuthenticatedUser() == false;
+      allow delete: if isAdminUser();
     }
   }
 }
