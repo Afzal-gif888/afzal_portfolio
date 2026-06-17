@@ -38,7 +38,9 @@ export default function Projects() {
           if (process.env.NODE_ENV === "production") {
             console.log("[Projects] Firestore imageUrl for", docSnap.id, ":", data.imageUrl);
           }
-          fetchedProjects.push({ id: docSnap.id, ...data } as Project);
+          // Remove any existing `id` field from the document data to avoid duplicate property errors.
+          const { id: _ignored, ...rest } = data as { id?: string };
+          fetchedProjects.push({ id: docSnap.id, ...rest } as Project);
         });
         setProjects(fetchedProjects);
       } catch (error) {

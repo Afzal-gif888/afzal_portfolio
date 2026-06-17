@@ -33,7 +33,9 @@ export default function Certificates() {
           if (process.env.NODE_ENV === "production") {
             console.log("[Certificates] Firestore imageUrl for", docSnap.id, ":", data.imageUrl);
           }
-          fetched.push({ id: docSnap.id, ...data } as Certificate);
+          // Exclude any `id` field that might exist in the document data to avoid duplicate property errors.
+          const { id: _ignored, ...rest } = data as { id?: string };
+          fetched.push({ id: docSnap.id, ...rest } as Certificate);
         });
         setCertificates(fetched);
       } catch (error) {
