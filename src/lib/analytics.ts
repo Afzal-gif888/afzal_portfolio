@@ -15,25 +15,27 @@ let cachedVisitorId: string | null = null;
  * @returns true if user is admin, false otherwise
  */
 function isAdminUser(): boolean {
-  // During SSR, prevent any analytics tracking
+  // During SSR, prevent any analytics tracking (no window, no auth)
   if (typeof window === "undefined") return true;
-  
-  // Check if on admin dashboard route
-  const isDashboardRoute = window.location.pathname.startsWith("/admin");
-  if (isDashboardRoute) return true;
-  
-  // Check if admin flag is set in localStorage
-  const isAdminStorage = localStorage.getItem("isAdmin") === "true";
-  if (isAdminStorage && auth.currentUser) {
-    // Verify against configured admin email
+
+  // Admin dashboard routes should never be tracked
+  if (window.location.pathname.startsWith("/admin")) return true;
+
+  // Direct email check against the configured admin email. This works regardless of any localStorage flag.
+  if (auth.currentUser) {
     const userEmail = auth.currentUser.email?.toLowerCase();
-    const isAdminByEmail = userEmail === ADMIN_EMAIL;
-    if (isAdminByEmail) {
+    if (userEmail && userEmail === ADMIN_EMAIL) {
       console.debug("[Analytics] Admin detected (email verified):", userEmail);
       return true;
     }
   }
-  
+
+  // Fallback: if a legacy localStorage flag is present, respect it (maintains backward compatibility)
+  if (localStorage.getItem("isAdmin") === "true") {
+    console.debug("[Analytics] Admin detected via legacy localStorage flag");
+    return true;
+  }
+
   return false;
 }
 

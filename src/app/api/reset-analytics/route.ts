@@ -16,10 +16,53 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Perform analytics reset: delete all analytics related collections and reset counters
+    // Import Firestore utilities lazily to avoid circular dependencies
+    const { collection, getDocs, deleteDoc, doc, setDoc } = await import("firebase/firestore");
+    const { db } = await import("@/lib/firebase");
+
+    // Helper to delete all documents in a collection
+    const clearCollection = async (colName: string) => {
+      const colRef = collection(db, colName);
+      const snapshot = await getDocs(colRef);
+      const batch = [] as Promise<void>[];
+      snapshot.forEach((d) => {
+        batch.push(deleteDoc(doc(db, colName, d.id)));
+      });
+      await Promise.all(batch);
+    };
+
+    // List of analytics collections to clear
+    const collectionsToClear = [
+      "analytics",
+      "analyticsVisitors",
+      "analyticsEvents",
+      "projectAnalytics",
+      "analyticsSummary",
+    ];
+
+    await Promise.all(collectionsToClear.map(clearCollection));
+
+    // Re-initialize global counters to zero
+    const globalRef = doc(db, "analytics", "global");
+    const zeroData = {
+      total_visits: 0,
+      unique_visitors: 0,
+      returning_visitors: 0,
+      page_views: 0,
+      resume_downloads: 0,
+      linkedin_clicks: 0,
+      github_clicks: 0,
+      leetcode_clicks: 0,
+      social_clicks: 0,
+      project_views: 0,
+    };
+    await setDoc(globalRef, zeroData, { merge: true });
+
     return NextResponse.json({
       success: true,
-      message: "Analytics reset endpoint ready. Use the admin dashboard UI to reset data.",
-      instructions: "Navigate to /admin-afzal-1299/analytics and click the reset button.",
+      message: "Analytics have been reset successfully.",
+      instructions: "Analytics data cleared. Future analytics will only reflect non-admin visitors.",
     });
   } catch (error) {
     console.error("Analytics reset error:", error);
