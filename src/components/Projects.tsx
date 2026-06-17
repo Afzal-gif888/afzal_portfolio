@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import { collection, query, orderBy, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import OptimizedImage from "@/components/OptimizedImage";
-import { ExternalLink, Code } from "lucide-react";
+import { ExternalLink, Code, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 interface Project {
   id: string;
@@ -84,7 +85,7 @@ export default function Projects() {
               whileHover={{ y: -10, scale: 1.02 }}
               className="group flex flex-col border rounded-xl overflow-hidden bg-card hover:shadow-xl hover:border-primary/30 transition-all duration-300"
             >
-              <div className="relative w-full h-48 bg-muted overflow-hidden">
+              <Link href={`/project/${project.id}`} className="relative w-full h-48 bg-muted overflow-hidden block">
                 {project.imageUrl ? (
                   <OptimizedImage src={project.imageUrl} alt={project.name} fill className="object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                 ) : (
@@ -95,7 +96,7 @@ export default function Projects() {
                 <div className="absolute top-3 right-3 bg-background/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-medium border">
                   {project.status}
                 </div>
-              </div>
+              </Link>
 
               <div className="p-5 flex flex-col flex-1">
                 <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">{project.category}</p>
@@ -111,6 +112,11 @@ export default function Projects() {
                 </div>
 
                 <div className="flex items-center gap-2 pt-3 border-t mt-auto">
+                  <Link href={`/project/${project.id}`}>
+                    <Button variant="secondary" size="sm">
+                      Details <ArrowRight className="ml-1.5 h-3 w-3" />
+                    </Button>
+                  </Link>
                   {project.githubUrl && (
                     <motion.a whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} href={project.githubUrl} target="_blank" rel="noreferrer">
                       <Button variant="outline" size="sm">
