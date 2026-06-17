@@ -33,7 +33,12 @@ export default function Projects() {
         const querySnapshot = await getDocs(q);
         const fetchedProjects: Project[] = [];
         querySnapshot.forEach((docSnap) => {
-          fetchedProjects.push({ id: docSnap.id, ...docSnap.data() } as Project);
+          const data = docSnap.data() as Project;
+          // Log the raw image URL from Firestore for debugging malformed values
+          if (process.env.NODE_ENV === "production") {
+            console.log("[Projects] Firestore imageUrl for", docSnap.id, ":", data.imageUrl);
+          }
+          fetchedProjects.push({ id: docSnap.id, ...data } as Project);
         });
         setProjects(fetchedProjects);
       } catch (error) {

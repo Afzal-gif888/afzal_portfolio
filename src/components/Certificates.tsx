@@ -29,7 +29,11 @@ export default function Certificates() {
         const querySnapshot = await getDocs(q);
         const fetched: Certificate[] = [];
         querySnapshot.forEach((docSnap) => {
-          fetched.push({ id: docSnap.id, ...docSnap.data() } as Certificate);
+          const data = docSnap.data() as Certificate;
+          if (process.env.NODE_ENV === "production") {
+            console.log("[Certificates] Firestore imageUrl for", docSnap.id, ":", data.imageUrl);
+          }
+          fetched.push({ id: docSnap.id, ...data } as Certificate);
         });
         setCertificates(fetched);
       } catch (error) {

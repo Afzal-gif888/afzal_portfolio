@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
         hostname: "images.unsplash.com",
       },
     ],
+    // Disable Next.js image optimization in production (e.g., Netlify deployments) to avoid 502 errors.
+    // The `unoptimized` flag bypasses the /_next/image endpoint and serves the original URL.
+    // Using NODE_ENV ensures the flag is active for any production build, regardless of custom env vars.
+    unoptimized: process.env.NODE_ENV === "production",
   },
   async headers() {
     return [

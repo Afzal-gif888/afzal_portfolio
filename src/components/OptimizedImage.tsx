@@ -2,7 +2,7 @@
 
 import Image, { type ImageProps } from "next/image";
 import { useState } from "react";
-import { getOptimizedUrl, getLqipUrl, isCloudinaryUrl } from "@/lib/cloudinary";
+import { getOptimizedUrl, getLqipUrl, isCloudinaryUrl, sanitizeUrl } from "@/lib/cloudinary";
 
 interface OptimizedImageProps extends Omit<ImageProps, "src" | "onLoad"> {
   src: string;
@@ -26,11 +26,20 @@ export default function OptimizedImage({
 }: OptimizedImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const optimizedSrc = isCloudinaryUrl(src)
-    ? getOptimizedUrl(src, optimizedWidth)
-    : src;
+  // Clean up the URL from Firestore – removes stray quotes/escapes that cause malformed URLs
+  const cleanSrc = sanitizeUrl(src);
+  const optimizedSrc = isCloudinaryUrl(cleanSrc)
+    ? getOptimizedUrl(cleanSrc, optimizedWidth)
+    : cleanSrc;
 
-  const lqipSrc = isCloudinaryUrl(src) ? getLqipUrl(src) : undefined;
+  const lqipSrc = isCloudinaryUrl(cleanSrc) ? getLqipUrl(cleanSrc) : undefined;
+
+  // Log URLs in production to help trace any malformed URLs causing 502 errors
+  if (process.env.NODE_ENV === "production") {
+    console.log("[OptimizedImage] original src:", src);
+    console.log("[OptimizedImage] cleaned src:", cleanSrc);
+    console.log("[OptimizedImage] optimized src:", optimizedSrc);
+  }
 
   return (
     <div className="relative w-full h-full">

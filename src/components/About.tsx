@@ -61,7 +61,11 @@ export default function About() {
         setHeader(headerSnap.exists() ? { subtitle: (headerSnap.data() as any)?.subtitle ?? "" } : { subtitle: "" });
 
         const profileSnap = await getDoc(doc(db, "aboutProfile", "main"));
-        setProfile(profileSnap.exists() ? (profileSnap.data() as AboutProfile) : { imageUrl: "", fullName: "", title: "", specialization: "", status: "", location: "" });
+        const profileData = profileSnap.exists() ? (profileSnap.data() as AboutProfile) : { imageUrl: "", fullName: "", title: "", specialization: "", status: "", location: "" };
+        if (process.env.NODE_ENV === "production") {
+          console.log("[About] Firestore imageUrl for profile:", profileData.imageUrl);
+        }
+        setProfile(profileData);
 
         const summarySnap = await getDoc(doc(db, "aboutSummary", "main"));
         setSummary(summarySnap.exists() ? { summary: (summarySnap.data() as any)?.summary ?? "" } : { summary: "" });
