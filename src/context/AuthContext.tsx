@@ -21,19 +21,34 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 // Admin email configured for analytics access
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "afzal.portfolio@gmail.com";
+const ADMIN_EMAIL = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "afzal97016458@gmail.com").toLowerCase();
 const ADMIN_UIDS = (process.env.NEXT_PUBLIC_ADMIN_UIDS || "").split(",").filter(Boolean);
 
 function verifyAdminAccess(user: User | null): boolean {
-  if (!user) return false;
+  if (!user) {
+    console.debug("[Admin Auth] No user authenticated");
+    return false;
+  }
+  
+  const userEmail = user.email?.toLowerCase() || "";
+  console.debug("[Admin Auth] Checking access:", {
+    userEmail,
+    expectedAdminEmail: ADMIN_EMAIL,
+    emailMatch: userEmail === ADMIN_EMAIL,
+    userUID: user.uid,
+    adminUIDs: ADMIN_UIDS,
+  });
   
   // Check if user email matches admin email
-  const isAdminByEmail = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const isAdminByEmail = userEmail === ADMIN_EMAIL;
   
-  // Check if user UID is in admin list
-  const isAdminByUID = ADMIN_UIDS.includes(user.uid);
+  // Check if user UID is in admin list (if any)
+  const isAdminByUID = ADMIN_UIDS.length > 0 && ADMIN_UIDS.includes(user.uid);
   
-  return isAdminByEmail || isAdminByUID;
+  const hasAccess = isAdminByEmail || isAdminByUID;
+  console.debug("[Admin Auth] Access result:", { isAdminByEmail, isAdminByUID, hasAccess });
+  
+  return hasAccess;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -42,9 +57,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    console.debug("[Auth] Initializing auth listener with ADMIN_EMAIL:", ADMIN_EMAIL);
+    
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.debug("[Auth] Auth state changed:", { user: user?.email, uid: user?.uid });
       setUser(user);
       const adminStatus = verifyAdminAccess(user);
+      console.debug("[Auth] Admin status set to:", adminStatus);
       setIsAdmin(adminStatus);
       
       if (user && adminStatus) {

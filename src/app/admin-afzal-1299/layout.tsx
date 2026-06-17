@@ -13,15 +13,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
 
   useEffect(() => {
+    console.debug("[Admin Layout] Auth state:", { loading, user: user?.email, isAdmin, pathname });
+    
     if (!loading) {
       // Redirect to login if not authenticated
       if (!user && pathname !== "/admin-afzal-1299/login") {
+        console.debug("[Admin Layout] Redirecting to login - no user");
         router.push("/admin-afzal-1299/login");
         return;
       }
       
       // Redirect to access denied if user is not admin (except on login page)
       if (user && !isAdmin && pathname !== "/admin-afzal-1299/login") {
+        console.warn("[Admin Layout] Access denied - user not admin. Email:", user.email);
         router.push("/admin-afzal-1299/access-denied");
         return;
       }

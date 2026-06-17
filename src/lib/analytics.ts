@@ -49,9 +49,11 @@ function isAdmin() {
   const isAdminStorage = localStorage.getItem("isAdmin") === "true";
   if (isAdminStorage && auth.currentUser) {
     // Verify this is the configured admin email
-    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "afzal.portfolio@gmail.com";
+    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "afzal97016458@gmail.com").toLowerCase();
     const userEmail = auth.currentUser.email?.toLowerCase();
-    return userEmail === adminEmail.toLowerCase();
+    const isAdminUser = userEmail === adminEmail;
+    console.debug("[Analytics] isAdmin check:", { userEmail, adminEmail, isAdminUser });
+    return isAdminUser;
   }
   
   return false;

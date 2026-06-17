@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "afzal97016458@gmail.com";
+const ADMIN_EMAIL = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "afzal97016458@gmail.com").toLowerCase();
 
 export async function POST(request: NextRequest) {
   try {
