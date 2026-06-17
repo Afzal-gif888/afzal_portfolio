@@ -5,6 +5,8 @@ import { db, auth } from "@/lib/firebase";
 
 // Admin email configured for analytics access
 const ADMIN_EMAIL = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "afzal97016458@gmail.com").toLowerCase();
+// Debug: analytics module loaded
+console.log("[Analytics] Initialized");
 
 // Cache visitor ID in a module-level variable to avoid redundant localStorage accesses
 let cachedVisitorId: string | null = null;
@@ -74,12 +76,18 @@ function getBrowser() {
 
 function getVisitorId() {
   if (typeof window === "undefined") return null;
-  if (cachedVisitorId) return cachedVisitorId;
-  
+  if (cachedVisitorId) {
+    console.log("[Analytics] Visitor ID Loaded from cache:", cachedVisitorId);
+    return cachedVisitorId;
+  }
+
   let vid = localStorage.getItem("visitorId");
   if (!vid) {
     vid = crypto.randomUUID();
     localStorage.setItem("visitorId", vid);
+    console.log("[Analytics] Visitor ID Created:", vid);
+  } else {
+    console.log("[Analytics] Visitor ID Loaded from localStorage:", vid);
   }
   cachedVisitorId = vid;
   return vid;
@@ -87,14 +95,16 @@ function getVisitorId() {
 
 async function updateVisitorRecord(visitorId: string, pageName: string) {
   // CRITICAL: Exclude admin from all analytics tracking
-  if (isAdminUser()) return;
+  if (isAdminUser()) {
+    console.log("[Analytics] Admin user – visitor record not updated");
+    return;
+  }
 
   const visitorRef = doc(db, "analyticsVisitors", visitorId);
   const now = new Date().toISOString();
-  
+
   try {
     const hasRecord = localStorage.getItem("visitor_record_created") === "true";
-    
     if (!hasRecord) {
       // First time on this device: Create the full visitor record
       await setDoc(visitorRef, {
@@ -104,20 +114,22 @@ async function updateVisitorRecord(visitorId: string, pageName: string) {
         visitCount: 1,
         deviceType: getDeviceType(),
         browser: getBrowser(),
-        lastActivePage: pageName
+        lastActivePage: pageName,
       });
       localStorage.setItem("visitor_record_created", "true");
+      console.log("[Analytics] Visitor record created for", visitorId);
     } else {
       // Subsequent actions: Update lastVisit and lastActivePage, and visitCount if a new session starts
       const isNewSession = !sessionStorage.getItem("has_visited_session");
       const updateData: Record<string, any> = {
         lastVisit: now,
-        lastActivePage: pageName
+        lastActivePage: pageName,
       };
       if (isNewSession) {
         updateData.visitCount = increment(1);
       }
       await setDoc(visitorRef, updateData, { merge: true });
+      console.log("[Analytics] Visitor record updated for", visitorId, "page", pageName);
     }
   } catch (error) {
     console.error("Error updating visitor record:", error);
@@ -126,7 +138,10 @@ async function updateVisitorRecord(visitorId: string, pageName: string) {
 
 async function trackAdvancedEvent(action: string, page: string, metadata: Record<string, any> = {}) {
   // CRITICAL: Exclude admin from all analytics tracking
-  if (isAdminUser()) return;
+  if (isAdminUser()) {
+    console.log(`[Analytics] Admin user – advanced event "${action}" not recorded`);
+    return;
+  }
   const visitorId = getVisitorId();
   if (!visitorId) return;
 
@@ -137,8 +152,9 @@ async function trackAdvancedEvent(action: string, page: string, metadata: Record
       action,
       page,
       timestamp: new Date().toISOString(),
-      metadata
+      metadata,
     });
+    console.log(`[Analytics] Advanced event recorded: ${action} on ${page}`);
   } catch (error) {
     console.error("Error tracking advanced event:", error);
   }
@@ -162,7 +178,7 @@ export async function trackEvent(eventName: string, eventParams?: Record<string,
       const today = new Date().toISOString().split("T")[0];
       const globalRef = doc(db, "analytics", "global");
       const dailyRef = doc(db, "analytics", `daily_${today}`);
-      
+
       const updateData: Record<string, any> = { [eventName]: increment(1) };
       const dailyUpdateData: Record<string, any> = { [eventName]: increment(1), date: today };
 
@@ -172,10 +188,12 @@ export async function trackEvent(eventName: string, eventParams?: Record<string,
           sessionStorage.setItem("has_visited_session", "true");
           await trackAdvancedEvent("portfolio_visit", "Home");
           await updateVisitorRecord(visitorId, "Home");
+          console.log("[Analytics] Portfolio Visit Recorded");
         }
-        
+
         initScrollObserver(); // start observer
-        
+        console.log("[Analytics] Page View Event Recorded", eventName);
+
         const deviceType = getDeviceType();
         if (!localStorage.getItem("has_visited_unique")) {
           localStorage.setItem("has_visited_unique", "true");
@@ -195,14 +213,14 @@ export async function trackEvent(eventName: string, eventParams?: Record<string,
         if (eventName === EVENTS.GITHUB_CLICK) action = "github_click";
         if (eventName === EVENTS.RESUME_DOWNLOAD) action = "resume_download";
         await trackAdvancedEvent(action, window.location.pathname, eventParams);
+        console.log(`[Analytics] ${action} Recorded`);
       }
 
       // Batch global + daily updates to run concurrently
       await Promise.all([
         setDoc(globalRef, updateData, { merge: true }),
-        setDoc(dailyRef, dailyUpdateData, { merge: true })
+        setDoc(dailyRef, dailyUpdateData, { merge: true }),
       ]);
-      
     } catch (error) {
       console.error("Analytics tracking error:", error);
     }
@@ -211,7 +229,10 @@ export async function trackEvent(eventName: string, eventParams?: Record<string,
 
 export async function trackProjectView(projectId: string, projectTitle: string) {
   // CRITICAL: Exclude admin from all analytics tracking
-  if (isAdminUser()) return;
+  if (isAdminUser()) {
+    console.log(`[Analytics] Admin user – project view not recorded for ${projectId}`);
+    return;
+  }
 
   // Fire-and-forget pattern
   (async () => {
@@ -224,12 +245,11 @@ export async function trackProjectView(projectId: string, projectTitle: string) 
 
       // Update specific project stats in projectAnalytics collection
       const projectRef = doc(db, "projectAnalytics", projectId);
-      
       const updateProjectPromise = setDoc(projectRef, {
         projectId,
         projectTitle,
         views: increment(1),
-        lastViewedAt: new Date().toISOString()
+        lastViewedAt: new Date().toISOString(),
       }, { merge: true });
 
       // Ensure session tracking is running
@@ -243,8 +263,7 @@ export async function trackProjectView(projectId: string, projectTitle: string) 
       }
 
       await Promise.all([updateProjectPromise, updateVisitorPromise]);
-      console.log(`Analytics: Logged view for project - ${projectTitle}`);
-
+      console.log(`[Analytics] Project View Recorded for ${projectTitle}`);
     } catch (error) {
       console.error("Analytics tracking error for project:", error);
     }
@@ -264,13 +283,12 @@ function initScrollObserver() {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         const pageName = entry.target.id;
-        if (pageName && pageName !== "hero") { 
-          // Check session storage to avoid spamming the same page in one session
+        if (pageName && pageName !== "hero") {
           const viewedPages = JSON.parse(sessionStorage.getItem("viewed_pages") || "{}");
           if (!viewedPages[pageName]) {
             viewedPages[pageName] = true;
             sessionStorage.setItem("viewed_pages", JSON.stringify(viewedPages));
-            
+            console.log(`[Analytics] Page View Recorded: ${pageName}`);
             trackAdvancedEvent("page_view", pageName);
             updateVisitorRecord(visitorId, pageName);
           }
