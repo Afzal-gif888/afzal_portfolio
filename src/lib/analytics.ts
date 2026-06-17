@@ -3,8 +3,39 @@
 import { doc, setDoc, addDoc, collection, increment } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 
+// Admin email configured for analytics access
+const ADMIN_EMAIL = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "afzal97016458@gmail.com").toLowerCase();
+
 // Cache visitor ID in a module-level variable to avoid redundant localStorage accesses
 let cachedVisitorId: string | null = null;
+
+/**
+ * Centralized helper to determine if current user is the admin.
+ * Admin activity must be completely excluded from all analytics.
+ * @returns true if user is admin, false otherwise
+ */
+function isAdminUser(): boolean {
+  // During SSR, prevent any analytics tracking
+  if (typeof window === "undefined") return true;
+  
+  // Check if on admin dashboard route
+  const isDashboardRoute = window.location.pathname.startsWith("/admin");
+  if (isDashboardRoute) return true;
+  
+  // Check if admin flag is set in localStorage
+  const isAdminStorage = localStorage.getItem("isAdmin") === "true";
+  if (isAdminStorage && auth.currentUser) {
+    // Verify against configured admin email
+    const userEmail = auth.currentUser.email?.toLowerCase();
+    const isAdminByEmail = userEmail === ADMIN_EMAIL;
+    if (isAdminByEmail) {
+      console.debug("[Analytics] Admin detected (email verified):", userEmail);
+      return true;
+    }
+  }
+  
+  return false;
+}
 
 // Basic device categorization
 function getDeviceType() {
@@ -38,29 +69,9 @@ function getVisitorId() {
   return vid;
 }
 
-function isAdmin() {
-  if (typeof window === "undefined") return true; // prevent tracking during SSR
-  
-  // Check if on admin route
-  const isDashboardRoute = window.location.pathname.startsWith("/admin");
-  if (isDashboardRoute) return true;
-  
-  // Check if user is authenticated as admin
-  const isAdminStorage = localStorage.getItem("isAdmin") === "true";
-  if (isAdminStorage && auth.currentUser) {
-    // Verify this is the configured admin email
-    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "afzal97016458@gmail.com").toLowerCase();
-    const userEmail = auth.currentUser.email?.toLowerCase();
-    const isAdminUser = userEmail === adminEmail;
-    console.debug("[Analytics] isAdmin check:", { userEmail, adminEmail, isAdminUser });
-    return isAdminUser;
-  }
-  
-  return false;
-}
-
 async function updateVisitorRecord(visitorId: string, pageName: string) {
-  if (isAdmin()) return;
+  // CRITICAL: Exclude admin from all analytics tracking
+  if (isAdminUser()) return;
 
   const visitorRef = doc(db, "analyticsVisitors", visitorId);
   const now = new Date().toISOString();
@@ -98,7 +109,8 @@ async function updateVisitorRecord(visitorId: string, pageName: string) {
 }
 
 async function trackAdvancedEvent(action: string, page: string, metadata: Record<string, any> = {}) {
-  if (isAdmin()) return;
+  // CRITICAL: Exclude admin from all analytics tracking
+  if (isAdminUser()) return;
   const visitorId = getVisitorId();
   if (!visitorId) return;
 
@@ -119,8 +131,9 @@ async function trackAdvancedEvent(action: string, page: string, metadata: Record
 export async function trackEvent(eventName: string, eventParams?: Record<string, any>) {
   if (typeof window === "undefined") return;
 
-  if (isAdmin()) {
-    console.log(`Analytics: Tracking disabled for admin (${eventName})`);
+  // CRITICAL: Exclude admin from all analytics tracking
+  if (isAdminUser()) {
+    console.log(`[Analytics] Tracking disabled for admin (${eventName})`);
     return;
   }
 
@@ -181,7 +194,8 @@ export async function trackEvent(eventName: string, eventParams?: Record<string,
 }
 
 export async function trackProjectView(projectId: string, projectTitle: string) {
-  if (isAdmin()) return;
+  // CRITICAL: Exclude admin from all analytics tracking
+  if (isAdminUser()) return;
 
   // Fire-and-forget pattern
   (async () => {
@@ -223,7 +237,8 @@ export async function trackProjectView(projectId: string, projectTitle: string) 
 
 let observerInitialized = false;
 function initScrollObserver() {
-  if (observerInitialized || typeof window === "undefined" || isAdmin()) return;
+  // CRITICAL: Exclude admin from all analytics tracking
+  if (observerInitialized || typeof window === "undefined" || isAdminUser()) return;
   observerInitialized = true;
 
   const visitorId = getVisitorId();
@@ -264,3 +279,9 @@ export const EVENTS = {
   PROJECT_VIEW: "project_views",
   CONTACT_SUBMIT: "contact_submissions",
 } as const;
+
+/**
+ * Export centralized admin check for use in components or other modules
+ * Admin activity is completely excluded from all analytics tracking
+ */
+export { isAdminUser };
