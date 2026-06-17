@@ -6,7 +6,6 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { LayoutDashboard, User, Code, FileText, Award, Briefcase, LogOut, BarChart3, Link2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, signOut, isAdmin } = useAuth();

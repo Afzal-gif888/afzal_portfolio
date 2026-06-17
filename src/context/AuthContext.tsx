@@ -82,6 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
@@ -89,5 +90,3 @@ export function useAuth() {
   }
   return context;
 }
-
-export const useAuth = () => useContext(AuthContext);
