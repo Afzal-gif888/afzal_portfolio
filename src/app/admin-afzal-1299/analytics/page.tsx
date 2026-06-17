@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, UserCheck, Eye, Download, MousePointer, Activity, Briefcase, AlertTriangle } from "lucide-react";
+import { Users, UserCheck, Eye, Download, MousePointer, Activity, Briefcase, AlertTriangle, RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface AnalyticsVisitor {
   visitorId: string;
@@ -40,6 +42,7 @@ export default function AnalyticsDashboard() {
   const [projects, setProjects] = useState<ProjectAnalytics[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [accessError, setAccessError] = useState<string | null>(null);
+  const [resetLoading, setResetLoading] = useState(false);
 
   // Verify admin access on mount and when auth state changes
   useEffect(() => {
@@ -91,6 +94,43 @@ export default function AnalyticsDashboard() {
     }
   }
 
+  async function resetAnalytics() {
+    if (!window.confirm("Are you sure you want to reset all analytics data to zero? This action cannot be undone.")) {
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const collections = [
+        "analytics",
+        "analyticsVisitors",
+        "analyticsEvents",
+        "projectAnalytics",
+        "analyticsSummary",
+      ];
+
+      let totalDeleted = 0;
+
+      for (const collectionName of collections) {
+        const snapshot = await getDocs(collection(db, collectionName));
+        for (const doc of snapshot.docs) {
+          await deleteDoc(doc.ref);
+          totalDeleted++;
+        }
+      }
+
+      toast.success(`Analytics reset successfully. Deleted ${totalDeleted} documents.`);
+      setVisitors([]);
+      setEvents([]);
+      setProjects([]);
+    } catch (error) {
+      console.error("Error resetting analytics:", error);
+      toast.error("Failed to reset analytics. Please try again.");
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
   // Show loading state
   if (loading || dataLoading) {
     return <div className="text-center py-12 text-muted-foreground animate-pulse">Loading...</div>;
@@ -139,11 +179,23 @@ export default function AnalyticsDashboard() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Advanced Analytics</h1>
-        <p className="text-muted-foreground mt-2">
-          Comprehensive insights into your portfolio's traffic and visitor engagement.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Advanced Analytics</h1>
+          <p className="text-muted-foreground mt-2">
+            Comprehensive insights into your portfolio's traffic and visitor engagement.
+          </p>
+        </div>
+        <Button 
+          variant="destructive" 
+          size="sm"
+          onClick={resetAnalytics}
+          disabled={resetLoading}
+          className="gap-2"
+        >
+          <RotateCcw className="h-4 w-4" />
+          {resetLoading ? "Resetting..." : "Reset Analytics"}
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
