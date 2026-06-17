@@ -14,28 +14,42 @@ let cachedVisitorId: string | null = null;
  * Admin activity must be completely excluded from all analytics.
  * @returns true if user is admin, false otherwise
  */
+/**
+ * Determine whether the current user should be treated as an admin.
+ * Admin activity must be completely excluded from analytics.
+ *
+ * The previous implementation returned `true` during server‑side rendering
+ * (when `window` is undefined). That caused the analytics code to think *every*
+ * request was an admin request, preventing any data from being recorded.
+ *
+ * The updated logic:
+ *   • Return `false` during SSR – analytics are client‑side only, so we simply
+ *     skip the admin check.
+ *   • Exclude any route under `/admin`.
+ *   • If the Firebase auth user is available, compare their email to the
+ *     configured admin email.
+ *   • Do **not** rely on a legacy `localStorage` flag, which could incorrectly
+ *     mark regular visitors as admins.
+ */
 function isAdminUser(): boolean {
-  // During SSR, prevent any analytics tracking (no window, no auth)
-  if (typeof window === "undefined") return true;
+  // Server‑side rendering: no window, no client analytics – treat as non‑admin.
+  if (typeof window === "undefined") return false;
 
-  // Admin dashboard routes should never be tracked
-  if (window.location.pathname.startsWith("/admin")) return true;
+  // Admin dashboard routes should never be tracked. The project uses a custom
+  // admin prefix (e.g., "/admin-afzal-1299"). Checking for any path that
+  // contains "/admin" ensures all admin sections are excluded.
+  if (window.location.pathname.includes("/admin")) return true;
 
-  // Direct email check against the configured admin email. This works regardless of any localStorage flag.
-  if (auth.currentUser) {
-    const userEmail = auth.currentUser.email?.toLowerCase();
-    if (userEmail && userEmail === ADMIN_EMAIL) {
+  // Direct email check against the configured admin email.
+  if (auth.currentUser?.email) {
+    const userEmail = auth.currentUser.email.toLowerCase();
+    if (userEmail === ADMIN_EMAIL) {
       console.debug("[Analytics] Admin detected (email verified):", userEmail);
       return true;
     }
   }
 
-  // Fallback: if a legacy localStorage flag is present, respect it (maintains backward compatibility)
-  if (localStorage.getItem("isAdmin") === "true") {
-    console.debug("[Analytics] Admin detected via legacy localStorage flag");
-    return true;
-  }
-
+  // No admin indicators found – treat as regular visitor.
   return false;
 }
 
